@@ -1,4 +1,4 @@
-import itertools
+from itertools import product
 import pytest
 
 from environment import blackjack
@@ -22,19 +22,12 @@ def game(request):  # Does the parameter of fixture function must be named reque
     return game
 
 
-@pytest.fixture
-def model(request):
-    return models[request.param]
-
-
-@pytest.mark.parametrize("game", [(0, 2)], indirect=True, ids=str)
-@pytest.mark.parametrize("model", ["Test"], indirect=True)
+@pytest.mark.parametrize("game, model", [((0, 2), "Test")], indirect=["game"], ids=str)
 def test_two(game, model):
-    game.play(model)
+    game.play(models[model])
 
 
-@pytest.mark.parametrize("game", itertools.product(m, n), indirect=True, ids=str)
-@pytest.mark.parametrize("model", ["Test"], indirect=True)
+@pytest.mark.parametrize("game, model", product(product(m, n), ["Test"]), indirect=["game"], ids=str)
 def test_combinations(game, model):
     print([game.table.m, game.table.n])
-    game.play(model)
+    game.play(models[model])
