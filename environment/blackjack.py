@@ -253,7 +253,8 @@ class Blackjack:
         return reward
 
     def play(self, model):
-        logger.info("Game starts with {} decks of cards and {} players.".format(self.table.m, self.table.n))
+        logger.info("Game starts with {} decks of cards and {} players.".format(self.table.m if self.table.m > 0 else "infinite",
+                                                                                self.table.n))
         self.reset()
         status = self.__status()
 
