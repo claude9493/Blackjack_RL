@@ -1,37 +1,40 @@
-import unittest
-from loguru import logger
+import itertools
+import pytest
+
 from environment import blackjack
 from model.abstractmodel import TestModel
-from model.dealer_policy import DealerPolicy
+
+m = [6, 3, 1]
+n = [3, 4, 6]
+
+models = {
+    "Test": TestModel(),
+    "MC": None,
+    "TD": None,
+    "QL": None
+}
 
 
-def setup(m=2, n=0):
-    table = blackjack.Table(m, n)
-    # policies = [TestModel() for i in range(n-1)]
-    # policies.append(DealerPolicy())
-    # table.set_policy(policies)
+@pytest.fixture
+def game(request):  # Does the parameter of fixture function must be named request?
+    table = blackjack.Table(*request.param)
     game = blackjack.Blackjack(table=table)
     return game
 
 
-class MyTestCase(unittest.TestCase):
-    def test_2_players(self):
-        game = setup(0, 2)
-        print(game.table.players)
-        game.play(TestModel())
+@pytest.fixture
+def model(request):
+    return models[request.param]
 
-    def test_3_players(self):
-        game = setup(m=0, n=3)
-        print(game.table.players)
-        game.play(TestModel())
 
-    def test_combination(self):
-        model = TestModel()
-        for m in [6, 3, 1]:
-            for n in [3, 4, 6]:
-                logger.info("Now goes the combination m = {}, n = {}.".format(m, n))
-                game = setup(m, n)
-                game.play(model)
+@pytest.mark.parametrize("game", [(0, 2)], indirect=True, ids=str)
+@pytest.mark.parametrize("model", ["Test"], indirect=True)
+def test_two(game, model):
+    game.play(model)
 
-if __name__ == '__main__':
-    unittest.main()
+
+@pytest.mark.parametrize("game", itertools.product(m, n), indirect=True, ids=str)
+@pytest.mark.parametrize("model", ["Test"], indirect=True)
+def test_combinations(game, model):
+    print([game.table.m, game.table.n])
+    game.play(model)
