@@ -59,7 +59,7 @@ class Card(object):
             return 0
         else:
             # return sum([11 if card.suit == 'usble_ace' else 10 if card.value > 10 else card.value for card in cards])
-            return sum([card.value if (card.value <= 10 or card.suit == 'usable_ace') else 10 for card in cards])
+            return sum([card.value if card.value <= 10 else 10 for card in cards])
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
@@ -119,6 +119,8 @@ class PlayerState(object):
 
     def update_points(self):
         self.points = Card.sum(self.hand)
+        if self.usable_ace == UsableAce.USABLE and self.points+10 <= 21:
+            self.points += 10
 
 
 class PlayerRecord(object):
@@ -163,9 +165,10 @@ class Player(object):
             else:
                 hand_1st_ace.suit = "no_usable_ace"
                 self.state.usable_ace = UsableAce.NO_USABLE
+            self.state.update_points()
 
         if self.points + 10 == 21 and len(self.state.hand) == 2 and self.state.usable_ace == UsableAce.USABLE:
-            hand_1st_ace.value = 11
+            # hand_1st_ace.value = 11
             self.state.update_points()
             self.status = PlayerStatus.NATURAL
 

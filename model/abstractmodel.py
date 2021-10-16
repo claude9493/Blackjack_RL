@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from environment import core
 
+
 class AbstractModel(ABC):
     def __init__(self):
         pass
