@@ -1,11 +1,10 @@
-from model.abstractmodel import AbstractModel
-from environment import core  # import Action, PlayerState
-from loguru import logger
+from model.abstract_model import AbstractModel
+from environment import core
 
 
 class DealerPolicy(AbstractModel):
     def __init__(self):
-        super().__init__()
+        super().__init__(game=None)
 
     def q(self, state):
         pass
@@ -24,5 +23,3 @@ class DealerPolicy(AbstractModel):
             return core.Action.STICK
         else:
             return core.Action.HIT
-
-

@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from environment import blackjack
 from environment.core import GameStatus
-from model.abstractmodel import TestModel
+from model.abstract_model import TestModel
 
 logger.disable("environment.blackjack")
 

@@ -3,7 +3,7 @@ import pytest
 
 from loguru import logger
 from environment import blackjack
-from model.abstractmodel import TestModel
+from model.abstract_model import TestModel
 
 logger.add("test.log", enqueue=True)
 

@@ -1,7 +1,7 @@
 import unittest
 from loguru import logger
 from environment import blackjack
-from model.abstractmodel import TestModel
+from model.abstract_model import TestModel
 from model.dealer_policy import DealerPolicy
 
 

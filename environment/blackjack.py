@@ -3,7 +3,8 @@ from loguru import logger
 from enum import IntEnum
 from collections import Counter
 from environment.core import *
-from model.abstractmodel import  AbstractModel
+from model.abstract_model import  AbstractModel
+from model.dealer_policy import  DealerPolicy
 
 # TODO: more logs.
 
@@ -173,7 +174,7 @@ class Blackjack:
         return GameStatus.PLAYING
 
 
-    def __observe(self):
+    def __observe(self) -> tuple:
         """
         Players' observe is their own state plus the dealer's face up card.
         What the player could observe?
@@ -320,7 +321,7 @@ class Blackjack:
                 action = DealerPolicy.predict(state=observation)
             else:
                 action = model.predict(state=observation)
-                player_trajectory[self.act].append([observation, action])
+                player_trajectory[self.act].append((observation, action))
 
             observation, status = self.step(action)
             # self.record(observation)

@@ -3,10 +3,10 @@ from loguru import logger
 from enum import IntEnum
 import itertools
 from typing import Union, List
-from model.dealer_policy import  DealerPolicy
+
 
 class Action(IntEnum):
-    '''Aviable actions for player and dealer.
+    '''Available actions for players.
     '''
     HIT = 0
     STICK = 1
@@ -125,6 +125,7 @@ class PlayerState(object):
 
 class PlayerRecord(object):
     """
+    !depreached!
     Player's record.
     The record is updated during continuous blackjack games.
     """
@@ -146,7 +147,7 @@ class Player(object):
         self.name = ""
         self.state = PlayerState()
         self.record = PlayerRecord()
-        self.policy = None
+        # self.policy = None
         self.reset()
 
     def draw(self, card: List[Card]):
@@ -186,10 +187,10 @@ class Player(object):
 class Gambler(Player):
     def __init__(self, model=None):
         super(Gambler, self).__init__()
-        self.policy = model
+        # self.policy = model
 
 
 class Dealer(Player):
     def __init__(self):
         super(Dealer, self).__init__()
-        self.policy = DealerPolicy()  # Dealer has its own policy
+        # self.policy = DealerPolicy()  # Dealer has its own policy

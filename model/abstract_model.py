@@ -3,7 +3,11 @@ from environment import core
 
 
 class AbstractModel(ABC):
-    def __init__(self):
+    check_convergence_every = 5
+    discount = 1
+
+    def __init__(self, game):
+        self.game = game
         pass
 
     def load(self, filename):
@@ -30,8 +34,12 @@ class AbstractModel(ABC):
 class TestModel(AbstractModel):
     """
     A testing model, gambler sticks on any sum of 20 or greater, and hits otherwise.
-    # TODO: make the model trainable! Input gambler index and record the (state, action, reward) for them.
+    Not trainable, because policy is fixed, the evaluation is given in MonteCarloLearning.py
     """
+
+    def __init__(self):
+        super().__init__(game=None)
+
     def q(self, state):
         pass
 

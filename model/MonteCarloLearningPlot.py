@@ -2,10 +2,11 @@ import os, sys
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+# from model.model_visualization import value_function_plot
 
 #%% Load data
-vdf_10k = pd.read_csv(os.path.join(sys.path[0], "MC_Learning_10000_episodes.csv"))
-vdf_50k = pd.read_csv(os.path.join(sys.path[0], "MC_Learning_50000_episodes.csv"))
+vdf_10k = pd.read_csv(os.path.join(sys.path[0], "../record/MC_Learning_10000_episodes.csv"))
+vdf_50k = pd.read_csv(os.path.join(sys.path[0], "../record/MC_Learning_50000_episodes.csv"))
 
 
 #%% Draw
