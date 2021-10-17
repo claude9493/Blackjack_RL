@@ -2,6 +2,7 @@ import contextlib
 import multiprocessing
 from functools import partial
 
+import pickle
 import joblib
 import numpy as np
 import pandas as pd
@@ -11,7 +12,6 @@ from tqdm import tqdm
 
 from environment import blackjack
 from environment.core import GameStatus
-from environment.util import ExperienceRecorder
 from model.abstractmodel import TestModel
 
 logger.disable("environment.blackjack")
@@ -47,11 +47,31 @@ def tqdm_joblib(tqdm_object):
         tqdm_object.close()
 
 
+def indices_merged_arr_generic(arr, arr_pos="last"):
+    n = arr.ndim
+    grid = np.ogrid[tuple(map(slice, arr.shape))]
+    out = np.empty(arr.shape + (n+1,), dtype=np.result_type(arr.dtype, int))
+
+    if arr_pos=="first":
+        offset = 1
+    elif arr_pos=="last":
+        offset = 0
+    else:
+        raise Exception("Invalid arr_pos")
+
+    for i in range(n):
+        out[...,i+offset] = grid[i]
+    out[...,-1+offset] = arr
+    out.shape = (-1,n+1)
+
+    return out
+
+
 def single_play(game, model, n=0):
     logger.disable("environment.blackjack")
-    status = game.play(model)
+    status, reward, player_trajectory = game.play(model)
     if status in (GameStatus.END, GameStatus.DRAW, GameStatus.NATURAL):
-        return list(game.recorder.obs.values()), game.recorder.val[0].tolist()
+        return status, reward, player_trajectory
 
 
 def parallel_play(game, model, R=1000, nprocs=0):
@@ -73,43 +93,30 @@ if __name__ == '__main__':
     table = blackjack.Table(m=0, n=2)  # Infinity deck of cards and 2 players
     game = blackjack.Blackjack(table=table)
     model = TestModel()
-    recorder = ExperienceRecorder()
-    game.set_recorder(recorder)
-    # game.play_n(model, recorder, N=N)
-    V = dict()
+    # V = dict()
+
+    states = np.zeros((10, 10, 2))
+    states_count = np.zeros((10, 10, 2))
 
     res = parallel_play(game, model, R, nprocs=6)
-    # print(res)
+    print(res)
 
     for episode in res:
-        for observations, reward in zip(episode[0], episode[1]):
-             for obs in observations:
-                 obs_t = tuple(obs)
-                 if obs_t not in V:
-                     V[obs_t] = [0, 0]
-                 V[obs_t][0] += reward
-                 V[obs_t][1] += 1
+        for reward, player_trajectory in zip(episode[1], episode[2]):
+             for obs, _ in player_trajectory:
+                 obs_index = tuple(np.array(obs) - np.array([12, 1, 0]))
+                 states[obs_index] += reward
+                 states_count[obs_index] += 1
 
+    V = states / states_count
 
-    # for i in range(R):
-    #     if i % (R/10) == 0:
-    #         logger.info("Progress: {}/{}".format(i, R))
-    #     status = game.play(model)
-    #     if status in (GameStatus.END, GameStatus.DRAW, GameStatus.NATURAL):
-    #         for observations, val in zip(recorder.obs.values(), recorder.val[0]):
-    #             for obs in observations:
-    #                 obs_t = tuple(obs)
-    #                 if obs_t not in V:
-    #                     V[obs_t] = [0, 0]
-    #                 V[obs_t][0] += val
-    #                 V[obs_t][1] += 1
+    V_df = pd.DataFrame(indices_merged_arr_generic(V), columns=["PlayerSum", "DealerShow", "UsableAce", "Value"])
+    V_df.PlayerSum += 12
+    V_df.DealerShow += 1
 
-    print(V)
-    V = dict(map(lambda x: (x[0], x[1][0]/x[1][1]), V.items()))
+    print(V_df.Value.max())
 
-    print(V)
-    V_df = pd.Series(V).reset_index()
-    V_df.columns = ['PlayerSum', 'DealerShow', "UsableAce", "Value"]
     print(V_df.head())
     print(V_df.shape)
-    V_df.to_csv("MC_Learning_50000_episodes.csv", index=False)
+
+    # V_df.to_csv("MC_Learning_{}_episodes.csv".format(R), index=False)
