@@ -4,7 +4,6 @@ from enum import IntEnum
 from collections import Counter
 from environment.core import *
 from model.abstractmodel import  AbstractModel
-from environment.util import ExperienceRecorder
 
 # TODO: more logs.
 
@@ -131,7 +130,7 @@ class Blackjack:
             self.act += 1
 
         observation = self.__observe()  # observation before next action, active player may have changed.
-        return observation, status # reward, status
+        return observation, status
 
     def __execute(self, action):
         player = self.table.players[self.act]
@@ -139,7 +138,7 @@ class Blackjack:
             if player.status != PlayerStatus.LOSE_BUST:
                 player.status = PlayerStatus.STICK
             else:
-                pass
+                raise Exception("Hey, player {} has gone busted, how can him continue to take action?".format(self.act))
         if action == Action.HIT:
             player.draw(self.table.decks.dealCard(n=1))
 
@@ -184,9 +183,9 @@ class Blackjack:
         """
         # self.dealer_face_up = self.table.players[-1].state.hand[0]  # dealer's first card is face-up
         # player_cards = self.table.players[self.act].state.hand
-        return [self.table.players[self.act].points,
-                self.dealer_face_up.value,
-                self.table.players[self.act].state.usable_ace.value]
+        return (self.table.players[self.act].points,
+                min(self.dealer_face_up.value, 10),
+                self.table.players[self.act].state.usable_ace.value)
 
     def __is_over(self, status=None):
         """
@@ -266,7 +265,7 @@ class Blackjack:
                              self.reward_lose * np.ones((self.table.n - 1, 1))
         return reward
 
-    def set_recorder(self, recorder: ExperienceRecorder):
+    def set_recorder(self, recorder):
         self.recorder = recorder
 
     def record(self, observation):
@@ -283,58 +282,62 @@ class Blackjack:
                 self.recorder.obs[self.act] = []
             self.recorder.obs[self.act].append(observation)
 
-    def play(self, model, recorder=None):
+    def play(self, model):
         """
         Play one round of the Blackjack game.
         :param model: The model for gambler's action.
         :type model: AbstractModel
-        :return: Game ending status.
-        :rtype: GameStatus
+        :return: Game ending status, reward, player_trajectory
+        :rtype: GameStatus, numpy.array, List[List[(player_sum, dealer_showing, usable_ace)]]
         """
         logger.info("Game starts with {} decks of cards and {} players.".format(self.table.m if self.table.m > 0 else "infinite",
                                                                                 self.table.n))
-        if recorder:
-            recorder.reset()
+        player_trajectory = [[] for i in range(self.table.n-1)]
+
         self.reset()
         status = self.__status()
 
         # if finish with GameStatus.NATURAL or GameStatus.DRAW), do not assign reward, because no action is made.
         if self.__is_over(status):
             # Settlement
-            reward = self.__settlement(status)
+            # reward = self.__settlement(status)
             # End game
             # self.player_reward += reward
             # logger.info("Finish with status {} and total reward {}.".format(GameStatus(status).name, self.player_reward.T))
 
             logger.info("Finish with status {} and total reward unchanged.".format(GameStatus(status).name))
-            return status
+            return status, None, None
 
         observation = self.__observe()
-        self.record(observation)
-
         while True:
             player = self.table.players[self.act]
+
+            while player.state.points < 12: # if sum of player is less than 12, always hit
+                player.draw(self.table.decks.dealCard(n=1))
+                observation = self.__observe()
+
             if self.act == self.table.n-1:
                 action = DealerPolicy.predict(state=observation)
             else:
                 action = model.predict(state=observation)
+                player_trajectory[self.act].append([observation, action])
 
             observation, status = self.step(action)
-            self.record(observation)
+            # self.record(observation)
 
             # if status == GameStatus.END:
             if self.__is_over(status):
                 # Settlement
                 reward = self.__settlement(status)
-                # End game
-                self.player_reward += reward
 
+                self.player_reward += reward
                 logger.info("Game ends with points {}, result {}, total reward {}".format(
                     [p.state.points for p in self.table.players],
                     [PlayerStatus(ps).name for ps in self.table.players_status],
                     self.player_reward.T))
-                self.recorder.val = reward
-                return status
+
+                # self.recorder.val = reward
+                return status, reward, player_trajectory
 
     def play_n(self, model, N=100):
         pass

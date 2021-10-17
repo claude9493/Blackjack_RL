@@ -1,8 +1,11 @@
 from itertools import product
 import pytest
 
+from loguru import logger
 from environment import blackjack
 from model.abstractmodel import TestModel
+
+logger.add("test.log", enqueue=True)
 
 m = [6, 3, 1]
 n = [3, 4, 6]

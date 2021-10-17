@@ -35,7 +35,7 @@ class TestModel(AbstractModel):
     def q(self, state):
         pass
 
-    def predict(self, state: list):
+    def predict(self, state: tuple):
         if state[0] < 20:
             return core.Action.HIT
         return core.Action.STICK
