@@ -146,7 +146,7 @@ class Player(object):
     def __init__(self):
         self.name = ""
         self.state = PlayerState()
-        self.record = PlayerRecord()
+        # self.record = PlayerRecord()
         # self.policy = None
         self.reset()
 

@@ -1,5 +1,11 @@
+import numpy as np
 from abc import ABC, abstractmethod
 from environment import core
+
+
+def q_obs_index(obs):
+    # Return the index of given observation in a Q-table.
+    return tuple(np.array(obs) - np.array([12, 1, 0]))
 
 
 class AbstractModel(ABC):
