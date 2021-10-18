@@ -2,7 +2,7 @@
 
 *Homework 1 of MATH-6450I Reinforcement Learning*
 
-ZHANG Yun 20706624
+ZHANG Yun
 
 >  Use reinforcement learning methods to study the Blackjack game.
 
@@ -10,14 +10,11 @@ ZHANG Yun 20706624
 
 [TOC]
 
-
-
 ## Setting
 
-- One `deck` of `cards` contains $13\times4=52$ cards.
+- One `deck` of `cards` contains $13\times4=52$ cards. All face cards are counted as $10$.
 - Objective of the Blackjack game is to obtain cards the sum of whose numerical values is as great as
   possible without exceeding 21.
-- All face cards are counted as $10$.
 - The card with value $1$ (`Ace`) is called `usable` if the sum of cards at hand (total `points`) plus `10` is smaller or equal to 21, otherwise `not usable`.
 
 - Suppose there are $m$ decks (infinite decks when $m=0$) of cards and $n$ `players`, including $n-1$ `gamblers` and $1$ `dealer`, on the `table`. 
@@ -35,22 +32,20 @@ ZHANG Yun 20706624
   - Based on his observation and his policy, make decision from the two options:
     - `Hit`: draw one card
     - `Stick`: stop drawing card and go to next player
-  - If his total points exceed `21` during hitting, we say he goes bust `LOSE_BUST`, and naturally he loses the game.
+  - If his total points exceed `21` during hitting, we say he goes bust, and he loses the game `LOSE_BUST`.
 - Then it's the dealer's turn, his action strictly follows a fixed policy: *sticks on any sum of 17 or greater, and hits otherwise*.
 - Finally it goes to the settlement part.
 
 ### Game Settlement
 
 - Dealer is excluded from the settlement.
-- In practice, for easier comparison, we set the points exceed 21 (busted) to 0.
+- In practice, for easier comparison, we first set the points exceeding 21 (busted) to 0.
 - If dealer goes bust
   - If there are some gamblers not go bust, they win and others lose.
   - If everyone goes bust, which is also a miracle, everyone lose!
 - If dealer does not goes bust
   - If there are some gamblers not goes bust
-    - If the dealer's points is equal to the highest points of gamblers, nobody wins or loses.
-    - If the highest points appear in gamblers' hands, those whose points is greater or equal to dealer's win, and others lose.
-    - If the highest points appear in dealer's hand, all gamblers lose
+    - Subtract the dealer's point from each gambler's point, those who still have a nonnegative values win, others lose.
   - If gamblers all go bust, dealer wins and gamblers lose.
 
 ### Reward
@@ -60,8 +55,6 @@ ZHANG Yun 20706624
 - Wining gamblers get reward $1$, losers get reward $-1$. 
 - If nobody wins or loses, everyone gets reward $0$.
 - Reward for Natural is $1.5$.
-
-
 
 ## Code Architecture
 
@@ -127,8 +120,7 @@ Reinforcement learning models for studying Blackjack game.
 #### Miscellaneous
 
 - The experiments are performed under the `pytest` unit test framework (refer to `learn_optimal_policy.py`), with same hyperparameters.
-
-
+- The visualization package `Matplotlib` and `seaborn` are used to produce all illustrated figures. The codes for visualization are in `model/model_visualization.py`.
 
 ## Tasks
 
@@ -138,7 +130,7 @@ Apply Monte Carlo policy evaluation on the extreme policy which sticks on any su
 
 <a id="mclearning"></a>
 
-<img src="./record/MC_Learning/Blackjack Value Function after Monte-Carlo Learning.png" style="zoom:67%;" />
+<img src="./record/MC_Learning/Blackjack Value Function after Monte-Carlo Learning.png" style="zoom:50%;" />
 
 It's basically same with Figure 5.1 of Sutton and Barto. The estimates for states with a usable ace are relatively less regular because these states are rare. In any event, after 500,000 games the value function is well approximated.
 
@@ -150,11 +142,17 @@ Now it's time to apply the Monte Carlo Control, Sarsa, and Q-Learning methods to
   - There might be minor difference between our implementation of the game and the one of Sutton and Barto, including rules, hyperparameters, and potential bugs.
 - The convergence criteria is not achieved by the methods, i.e. the training episodes (500,000) are not enough to make the methods converge.
 
+Several failed trails prove that using $\frac{1}{N(s)}$ as learning rate is not a good idea in Monte Carlo Control, since one state usually appears only once in one episode, so that the update is possibly too large. We found that using constant learning rate $\alpha=0.01$ is much better.
+
+The results also indicate that there are always unseen (state, action) pairs in training, e.g. ((21, 5, 1), HIT) where the player gets natural and directly wins. It's believed that's not a serious issue.
+
 ### 2. Visualize the value function and policy
 
 From the figures below, we can see that
 
-- The learned policies for the cases with usable ace are not so regular and reasonable, because those cases are relatively rare.
+- The learned policies for the cases with usable ace are unalike and not so regular, because those cases are relatively rare and the algorithms haven't converge for them. Maybe the replay and prioritized replay tricks proposed for DQN could help.
+- While for the cases with not usable ace, policies learned by the three methods are roughly the same, except for some boundary points.
+- There are alone misfit regions on the policy plot (left part of each figure). By checking the numerical Q-table, we found that the approximated Q-function values for two actions are close at those place. Maybe such problem can be solved by taking more episodes training.
 
 |        Monte Carlo Control        |               SARSA               |            Q-Learning             |
 | :-------------------------------: | :-------------------------------: | :-------------------------------: |
@@ -165,6 +163,11 @@ From the figures below, we can see that
 ### 3. Repeat 1 and 2 for different combinations of $(m, n)$, e.g. $m=6, 3, 1$, and $n=3, 4, 6$
 
 Repeat previous experiments with different values of $m$ and $n$ in a similar manner, the rules are unchanged but more sequence of trajectories are used to update Q function in one episode. The number of updates increases but the delay of using freshest Q function is also longer.
+
+In general, these figures suggest that 
+
+- Comparing horizontally, the learned policies for the cases with usable ace are unalike and not much regular as well, same problem with previous simple case. But for the cases with not usable ace, the learned policies by the three methods are roughly the same.
+- Comparing vertically, less the decks of cards, larger the the `stick` region.
 
 | $(m, n)$ | Monte Carlo Control | SARSA | Q-Learning |
 | -------- | :-----------------: | :---: | :--------: |
@@ -178,8 +181,11 @@ Repeat previous experiments with different values of $m$ and $n$ in a similar ma
 | (1, 4)   | ![](./record/MC_m1_n4_e5e+05.png) | ![](./record/TD_m1_n4_e5e+05.png) | ![](./record/QL_m1_n4_e5e+05.png) |
 | (1, 6)   | ![](./record/MC_m1_n6_e5e+05.png) | ![](./record/TD_m1_n6_e5e+05.png) | ![](./record/QL_m1_n6_e5e+05.png) |
 
+Above figures with higher resolution can be found in the path `./record/`, with names `{method}_m{m}_n{n}_e{episodes}.png`.
+
 ## Reproducibility of the results
 
 - The Q-function obtained are all saved under the path `./record/npz/` in `numpy.npz` format, and above figures can be directly reproduced with them by using the `draw_policy()` function in `model/model_visualization.py`.
-- To reproduce above visualization results as well as the Q-functions, please run the `learn_optimal_policy.py`. It may take a long time. Modify the decorator `@pytest.mark.parametrize()` before testing functions to select the settings ($m$ and $n$) and methods ("TD", "MC", "QL").
-- The codes and results are also stored on [GitHub](https://github.com/claude9493/Blackjack_RL)
+- To reproduce above visualization results as well as the Q-functions, please run the `learn_optimal_policy.py`. It may take hours. Modify the decorator `@pytest.mark.parametrize()` before testing functions to select the settings ($m$ and $n$) and methods ("TD", "MC", "QL").
+- The codes and results are also stored on [GitHub](https://github.com/claude9493/Blackjack_RL).
+
